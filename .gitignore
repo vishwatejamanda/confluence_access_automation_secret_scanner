@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+
+# IDEs
+.idea/
+.vscode/
+
+# Project specifics
+*.tar.gz
+*.backup
+*.log
+/tmp/
+.env
+
+# Diagnostic scripts
+sync_*.py
+remote_*.py
+final_remote_audit.py
+clean_all.py
+secure_deploy.py
+test_webhooks.sh
+check_saml_error.py
+setup_confluence_https.py

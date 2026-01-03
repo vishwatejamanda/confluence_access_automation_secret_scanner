@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confluence Automation Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.05);
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.3s ease;
+        }
+
+        .tab:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🔐 Confluence Automation Dashboard</h1>
+            <div class="connection-status">
+                <span class="status-dot" id="connectionStatus"></span>
+                <span id="connectionText">Connecting...</span>
+            </div>
+        </header>
+
+        <!-- Stats Dashboard -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="totalRequests">0</div>
+                    <div class="stat-label">Total Requests</div>
+                </div>
+            </div>
+            <div class="stat-card pending">
+                <div class="stat-icon">⏳</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="pendingRequests">0</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+            </div>
+            <div class="stat-card processing">
+                <div class="stat-icon">⚙️</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="processingRequests">0</div>
+                    <div class="stat-label">Processing</div>
+                </div>
+            </div>
+            <div class="stat-card completed">
+                <div class="stat-icon">✅</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="completedRequests">0</div>
+                    <div class="stat-label">Completed</div>
+                </div>
+            </div>
+            <div class="stat-card failed">
+                <div class="stat-icon">❌</div>
+                <div class="stat-content">
+                    <div class="stat-value" id="failedRequests">0</div>
+                    <div class="stat-label">Failed</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Access Request Form -->
+            <div id="accessTab">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>📝 Create New Access Request</h2>
+                    </div>
+                    <form id="requestForm" class="request-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="lan_id">LAN ID *</label>
+                                <input type="text" id="lan_id" name="lan_id" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="email">Email *</label>
+                                <input type="email" id="email" name="email" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="full_name">Full Name *</label>
+                                <input type="text" id="full_name" name="full_name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="domain">Domain *</label>
+                                <select id="domain" name="domain" required>
+                                    <option value="">Select Domain</option>
+                                    <option value="r1-core">r1-core</option>
+                                    <option value="r2-core">r2-core</option>
+                                    <option value="r3-core">r3-core</option>
+                                    <option value="r4-core">r4-core</option>
+                                    <option value="r5-core">r5-core</option>
+                                    <option value="r6-core">r6-core</option>
+                                    <option value="r7-core">r7-core</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="space_key">Space Key *</label>
+                                <input type="text" id="space_key" name="space_key" required placeholder="e.g., VIS, AR">
+                            </div>
+                            <div class="form-group">
+                                <label for="access">Access Level *</label>
+                                <select id="access" name="access" required>
+                                    <option value="">Select Access Level</option>
+                                    <option value="read">Read Only</option>
+                                    <option value="dev">Developer</option>
+                                    <option value="admin">Administrator</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="manager">Manager Username *</label>
+                                <input type="text" id="manager" name="manager" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="requester">Requester Username *</label>
+                                <input type="text" id="requester" name="requester" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <span class="btn-text">Submit Request</span>
+                            <span class="btn-loader" style="display: none;">Processing...</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Space Creation Form -->
+            <div id="spaceTab">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>🏢 Create New Space</h2>
+                    </div>
+                    <form id="spaceForm" class="request-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="space_name">Space Name *</label>
+                                <input type="text" id="space_name" name="space_name" required
+                                    placeholder="e.g., Engineering Team">
+                                <small>Must NOT start with a number</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="space_key_create">Space Key *</label>
+                                <input type="text" id="space_key_create" name="space_key" required
+                                    placeholder="e.g., ENG" maxlength="5" style="text-transform: uppercase;">
+                                <small>UPPERCASE only, no numbers, max 5 chars</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="space_admin">Space Admin Username *</label>
+                                <input type="text" id="space_admin" name="space_admin" required
+                                    placeholder="e.g., admin">
+                                <small>Must be an existing licensed user</small>
+                            </div>
+                            <div class="form-group" style="grid-column: 1 / -1;">
+                                <label for="description">Description</label>
+                                <textarea id="description" name="description" rows="3"
+                                    placeholder="Space description (optional)"></textarea>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <span class="btn-text">Create Space</span>
+                            <span class="btn-loader" style="display: none;">Creating...</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Requests List -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>📋 All Requests</h2>
+                    <div class="filter-buttons">
+                        <button class="filter-btn active" data-filter="all">All</button>
+                        <button class="filter-btn" data-filter="pending">Pending</button>
+                        <button class="filter-btn" data-filter="processing">Processing</button>
+                        <button class="filter-btn" data-filter="completed">Completed</button>
+                        <button class="filter-btn" data-filter="failed">Failed</button>
+                    </div>
+                </div>
+                <div id="requestsList" class="requests-list">
+                    <div class="empty-state">
+                        <div class="empty-icon">📭</div>
+                        <p>No requests yet. Create your first request above!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tab) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            if (tab === 'access') {
+                document.getElementById('accessTab').classList.add('active');
+            } else if (tab === 'space') {
+                document.getElementById('spaceTab').classList.add('active');
+            }
+        }
+    </script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+
+</html>
