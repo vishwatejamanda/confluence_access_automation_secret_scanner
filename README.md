@@ -3,6 +3,7 @@
 This project handles automatic user access and space setup for Confluence. I've also added a secret scanner that runs on webhooks to mask passwords or keys if they get pasted into pages.
 
 Everything is running on the Azure VM (57.159.25.203).
+confluence runs at https://57.159.25.203
 
 ### Main Links
 * Dashboard: http://57.159.25.203:5001
